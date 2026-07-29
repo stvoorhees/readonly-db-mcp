@@ -82,19 +82,46 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
     [McpServerTool(Name = "read_rows")]
     [Description("""
         Reads rows via a structured, read-only query. The server constructs and parameterizes all SQL;
-        raw SQL is never accepted. Supports joins (inner/left; 'on' may be omitted when exactly one
-        foreign key relates the tables), filters (=, !=, <, <=, >, >=, in, not_in, like, not_like,
-        is_null, is_not_null; filters are AND-combined), aggregates (count/sum/avg/min/max with
-        groupBy; non-aggregated columns must appear in groupBy), orderBy, limit, and offset
-        (offset requires orderBy). Column references are 'column' or 'alias.column', where alias is
-        the table name or the join's 'as' value. Omit columns/aggregates to select every column.
-        Row count is capped server-side; the response reports the generated SQL and whether results
-        were truncated.
+        raw SQL is never accepted. Pass parameters at the top level: connection and from are required.
+        Supports joins (inner/left; 'on' may be omitted when exactly one foreign key relates the
+        tables), filters (=, !=, <, <=, >, >=, in, not_in, like, not_like, is_null, is_not_null;
+        filters are AND-combined), aggregates (count/sum/avg/min/max with groupBy; non-aggregated
+        columns must appear in groupBy), orderBy, limit, and offset (offset requires orderBy).
+        Column references are 'column' or 'alias.column', where alias is the table name or the
+        join's 'as' value. Omit columns/aggregates to select every column. Row count is capped
+        server-side; the response reports the generated SQL and whether results were truncated.
         """)]
-    public async Task<string> ReadRows(ReadRowsRequest request, CancellationToken cancellationToken = default)
+    public async Task<string> ReadRows(
+        [Description("Connection name from list_connections. Required.")] string? connection = null,
+        [Description("Table or view to read, optionally schema-qualified, e.g. 'orders' or 'dbo.orders'. Required.")] string? from = null,
+        [Description("Alias for 'from'; use one or the other.")] string? table = null,
+        [Description("Alias to reference the from table as in 'alias.column'.")] string? fromAlias = null,
+        [Description("Columns to select, as 'column' or 'alias.column'. Omit to select every column.")] List<string>? columns = null,
+        [Description("Joins. 'on' may be omitted when exactly one foreign key relates the tables.")] List<JoinSpec>? joins = null,
+        [Description("Filters, AND-combined.")] List<FilterSpec>? filters = null,
+        [Description("Aggregates (count/sum/avg/min/max); non-aggregated selected columns must appear in groupBy.")] List<AggregateSpec>? aggregates = null,
+        [Description("Group-by columns.")] List<string>? groupBy = null,
+        [Description("Sort order. Required when offset is set.")] List<OrderSpec>? orderBy = null,
+        [Description("Maximum rows to return (server caps apply).")] int? limit = null,
+        [Description("Rows to skip; requires orderBy.")] int? offset = null,
+        CancellationToken cancellationToken = default)
     {
         return await GuardAsync(async () =>
         {
+            var request = new ReadRowsRequest
+            {
+                Connection = Require(connection, "connection", "read_rows"),
+                From = Require(from ?? table, "from", "read_rows"),
+                FromAlias = fromAlias,
+                Joins = joins,
+                Columns = columns,
+                Filters = filters,
+                Aggregates = aggregates,
+                GroupBy = groupBy,
+                OrderBy = orderBy,
+                Limit = limit,
+                Offset = offset,
+            };
             var exposed = registry.Get(request.Connection);
             var schema = await schemaCache.GetAsync(request.Connection, refresh: false, cancellationToken);
             var built = new QueryBuilder(exposed.Provider, schema, appConfig.File).Build(request);
@@ -111,32 +138,39 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
     }
 
     [McpServerTool(Name = "count_rows")]
-    [Description("Counts rows matching optional filters (same filter/join syntax as read_rows). Convenience wrapper over a COUNT(*) aggregate.")]
+    [Description("Counts rows matching optional filters (same filter/join syntax as read_rows). Convenience wrapper over a COUNT(*) aggregate. connection and from are required.")]
     public async Task<string> CountRows(
-        [Description("Connection name from list_connections.")] string connection,
-        [Description("Table name, optionally schema-qualified.")] string from,
+        [Description("Connection name from list_connections. Required.")] string? connection = null,
+        [Description("Table name, optionally schema-qualified. Required.")] string? from = null,
+        [Description("Alias for 'from'; use one or the other.")] string? table = null,
         [Description("Optional joins, same shape as read_rows joins.")] List<JoinSpec>? joins = null,
         [Description("Optional filters, same shape as read_rows filters.")] List<FilterSpec>? filters = null,
         CancellationToken cancellationToken = default)
     {
         return await GuardAsync(async () =>
         {
+            var conn = Require(connection, "connection", "count_rows");
             var request = new ReadRowsRequest
             {
-                Connection = connection,
-                From = from,
+                Connection = conn,
+                From = Require(from ?? table, "from", "count_rows"),
                 Joins = joins,
                 Filters = filters,
                 Aggregates = [new AggregateSpec { Fn = "count", Column = "*", Alias = "count_all" }],
                 Limit = 1,
             };
-            var exposed = registry.Get(connection);
-            var schema = await schemaCache.GetAsync(connection, refresh: false, cancellationToken);
+            var exposed = registry.Get(conn);
+            var schema = await schemaCache.GetAsync(conn, refresh: false, cancellationToken);
             var built = new QueryBuilder(exposed.Provider, schema, appConfig.File).Build(request);
-            var result = await executor.ExecuteAsync(connection, built, cancellationToken);
+            var result = await executor.ExecuteAsync(conn, built, cancellationToken);
             return new { sql = result.Sql, count = result.Rows.Count > 0 ? result.Rows[0][0] : 0 };
         });
     }
+
+    private static string Require(string? value, string name, string tool) =>
+        string.IsNullOrWhiteSpace(value)
+            ? throw new QueryValidationException($"{tool} requires '{name}'. Pass it as a top-level parameter, e.g. {{\"connection\": \"demo\", \"from\": \"dbo.orders\"}}.")
+            : value;
 
     private static string Serialize(object value) => JsonSerializer.Serialize(value, Json);
 
@@ -153,6 +187,16 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
         catch (DbException ex)
         {
             return Serialize(new { error = $"Database error: {ex.Message}" });
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Never let an unexpected exception surface as the SDK's opaque "an error occurred":
+            // agents can only self-correct from an error they can read.
+            return Serialize(new { error = $"Unexpected error ({ex.GetType().Name}): {ex.Message}" });
         }
     }
 }
