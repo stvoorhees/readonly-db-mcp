@@ -101,7 +101,9 @@ never exposed as MCP tools, so agents cannot invoke them.
 
 2. Register the server in your MCP client. The entry is the same everywhere — a local
    command plus args — shown per harness below. Replace the exe path with your clone's
-   `publish` output.
+   `publish` output, and make sure `--connections` names connections that exist in your
+   `config.json` (the `init` template defines one named `demo`) — the server exits at
+   startup otherwise, which MCP clients report as a closed connection.
 
    **Copilot CLI** — add to `~/.copilot/mcp-config.json` (global) or `.github/mcp.json`
    (project):
@@ -110,8 +112,10 @@ never exposed as MCP tools, so agents cannot invoke them.
    {
      "mcpServers": {
        "readonly-db": {
+         "type": "stdio",
+         "tools": ["*"],
          "command": "C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe",
-         "args": ["--connections", "orders"]
+         "args": ["--connections", "demo"]
        }
      }
    }
@@ -124,14 +128,14 @@ never exposed as MCP tools, so agents cannot invoke them.
    `.mcp.json` at the project root):
 
    ```
-   claude mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections orders
+   claude mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections demo
    ```
 
    **Codex CLI** — one command (stored in `~/.codex/config.toml` under
    `[mcp_servers.readonly-db]`):
 
    ```
-   codex mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections orders
+   codex mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections demo
    ```
 
    The project-scoped files are safe to commit — they name connections, never secrets —
