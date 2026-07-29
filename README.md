@@ -57,12 +57,9 @@ Prerequisite: the [.NET 10 SDK](https://dotnet.microsoft.com/download).
    publish\ReadOnlyDbMcp.exe doctor
    ```
 
-4. Register the server in your MCP client (details in the next section). For Claude Code
-   it's one command from your project directory:
-
-   ```
-   claude mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections demo
-   ```
+4. Register the server in your MCP client — Copilot CLI, Cursor, Claude Code, and
+   Codex CLI each have a snippet or one-liner under
+   [Configuration](#configuration) below.
 
 `init` and `doctor` are command-line verbs handled before the MCP server starts; they are
 never exposed as MCP tools, so agents cannot invoke them.
