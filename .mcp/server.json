@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.stvoorhees/readonly-db-mcp",
+  "description": "Read-only database access for agents via structured tools; the server authors all SQL. Supports SQL Server, PostgreSQL, MySQL/MariaDB.",
+  "repository": {
+    "url": "https://github.com/stvoorhees/readonly-db-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "ReadOnlyDbMcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "named",
+          "name": "--connections",
+          "description": "Comma-separated names of configured connections this server instance exposes to the agent. Required; names must exist in the local config file.",
+          "isRequired": true,
+          "format": "string",
+          "value": "demo"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "READONLYDB_CONFIG",
+          "description": "Optional path to the connections config file. Defaults to %USERPROFILE%/.readonlydb/config.json.",
+          "isRequired": false,
+          "format": "file_path"
+        }
+      ]
+    }
+  ]
+}
