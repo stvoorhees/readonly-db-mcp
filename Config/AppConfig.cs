@@ -62,7 +62,7 @@ public sealed class AppConfig
     {
         if (!System.IO.File.Exists(configPath))
             throw new InvalidOperationException(
-                $"Config file not found at '{configPath}'. Run 'readonly-db-mcp init' to create it, pass --config <path>, or set READONLYDB_CONFIG.");
+                $"Config file not found at '{configPath}'. Run '{Cli.SetupCli.Invocation} init' to create it, pass --config <path>, or set READONLYDB_CONFIG.");
 
         return JsonSerializer.Deserialize<ConfigFile>(System.IO.File.ReadAllText(configPath), JsonOpts)
             ?? throw new InvalidOperationException($"Config file '{configPath}' is empty or invalid.");
