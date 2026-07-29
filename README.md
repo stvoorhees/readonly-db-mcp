@@ -33,44 +33,44 @@ Supported engines: **SQL Server**, **PostgreSQL**, **MySQL/MariaDB** (.NET 10).
 
 ## Quickstart
 
-Prerequisite: the [.NET 10 SDK](https://dotnet.microsoft.com/download) (its `dnx` command
-fetches and runs the server from NuGet — nothing to clone or build).
+Prerequisite: the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
-1. Scaffold the connection config, then edit it to point at your database with a
+1. Clone and build once:
+
+   ```
+   git clone https://github.com/stvoorhees/readonly-db-mcp
+   cd readonly-db-mcp
+   dotnet publish -c Release -o publish
+   ```
+
+2. Scaffold the connection config, then edit it to point at your database with a
    **read-only credential**:
 
    ```
-   dnx ReadOnlyDbMcp --yes -- init
+   publish\ReadOnlyDbMcp.exe init
    ```
 
-2. Verify everything before involving an MCP client — connects, audits credential
+3. Verify everything before involving an MCP client — connects, audits credential
    privileges, counts tables:
 
    ```
-   dnx ReadOnlyDbMcp --yes -- doctor
+   publish\ReadOnlyDbMcp.exe doctor
    ```
 
-3. Register the server in your MCP client (details in the next section). For Claude Code
+4. Register the server in your MCP client (details in the next section). For Claude Code
    it's one command from your project directory:
 
    ```
-   claude mcp add readonly-db -- dnx ReadOnlyDbMcp --yes -- --connections demo
+   claude mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections demo
    ```
 
 `init` and `doctor` are command-line verbs handled before the MCP server starts; they are
 never exposed as MCP tools, so agents cannot invoke them.
 
-## Setup
+## Configuration
 
-1. Building from source instead of using NuGet? Clone and build once, then use the
-   published exe path anywhere the docs say `dnx ReadOnlyDbMcp --yes --`:
-
-   ```
-   dotnet publish -c Release -o publish
-   ```
-
-2. Create `%USERPROFILE%\.readonlydb\config.json` (never commit this file;
-   `init` scaffolds it for you):
+1. `%USERPROFILE%\.readonlydb\config.json` holds all connections — `init` scaffolds it,
+   and it must never be committed:
 
    ```json
    {
@@ -99,7 +99,7 @@ never exposed as MCP tools, so agents cannot invoke them.
    variable instead of the file. Config path can be overridden with `--config <path>` or the
    `READONLYDB_CONFIG` environment variable.
 
-3. Register the server in your MCP client's config. The entry is the same everywhere —
+2. Register the server in your MCP client's config. The entry is the same everywhere —
    a local command plus args — only the file differs:
 
    | Client | Config file |
@@ -109,25 +109,22 @@ never exposed as MCP tools, so agents cannot invoke them.
    | GitHub Copilot CLI | `~/.copilot/mcp-config.json` (global) or `.github/mcp.json` (project) |
    | Codex CLI | `~/.codex/config.toml` under `[mcp_servers.readonly-db]` (TOML, same fields) |
 
-   JSON-style example (Claude Code / Cursor / Copilot CLI). This entry is portable — it
-   works unchanged on every machine, so it's safe for a team repo:
+   JSON-style example (Claude Code / Cursor / Copilot CLI):
 
    ```json
    {
      "mcpServers": {
        "readonly-db": {
-         "command": "dnx",
-         "args": ["ReadOnlyDbMcp", "--yes", "--", "--connections", "orders"]
+         "command": "C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe",
+         "args": ["--connections", "orders"]
        }
      }
    }
    ```
 
-   If you built from source, use `"command": "C:/path/to/ReadOnlyDbMcp/publish/ReadOnlyDbMcp.exe"`
-   with `"args": ["--connections", "orders"]` instead.
-
-   These files are safe to commit — they name connections, never secrets. The server refuses
-   to start if `--connections` is missing or names an undefined connection.
+   These files are safe to commit — they name connections, never secrets — though note the
+   exe path is machine-specific, so each dev adjusts it (or you standardize a clone location).
+   The server refuses to start if `--connections` is missing or names an undefined connection.
 
 ## Tools
 

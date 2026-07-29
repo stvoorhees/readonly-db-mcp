@@ -7,8 +7,7 @@ prompts to whatever your schema actually contains.
 
 ## Setup
 
-1. Build: `dotnet publish -c Release -o publish` (or use `dnx ReadOnlyDbMcp --yes --`
-   everywhere an exe invocation appears below).
+1. Build: `dotnet publish -c Release -o publish`.
 2. Run `init` to scaffold `%USERPROFILE%\.readonlydb\config.json`, then point the `demo`
    connection at your test database. Use a read-only credential.
 3. Run `doctor` — it should print `OK demo (...): connected, N table(s), M view(s)` with
