@@ -32,22 +32,28 @@ public sealed class ConnectionRegistry
         _log = log;
         foreach (var name in config.ExposedNames)
         {
-            var cc = config.File.Connections[name];
-            var provider = ResolveProvider(cc.Provider)
-                ?? throw new InvalidOperationException(
-                    $"Connection '{name}': unknown provider '{cc.Provider}'. Use sqlserver, postgres, or mysql.");
-
-            var connectionString = cc.ConnectionString;
-            if (connectionString is null && cc.ConnectionStringEnv is { } env)
-                connectionString = Environment.GetEnvironmentVariable(env)
-                    ?? throw new InvalidOperationException(
-                        $"Connection '{name}': environment variable '{env}' is not set.");
-            if (string.IsNullOrWhiteSpace(connectionString))
-                throw new InvalidOperationException(
-                    $"Connection '{name}': set connectionString or connectionStringEnv in the config file.");
-
+            var (provider, connectionString) = Resolve(name, config.File.Connections[name]);
             _connections[name] = new ExposedConnection(name, provider, connectionString);
         }
+    }
+
+    /// <summary>Resolves a config entry to a provider and connection string, or throws with guidance.</summary>
+    public static (IDbProvider Provider, string ConnectionString) Resolve(string name, ConnectionConfig cc)
+    {
+        var provider = ResolveProvider(cc.Provider)
+            ?? throw new InvalidOperationException(
+                $"Connection '{name}': unknown provider '{cc.Provider}'. Use sqlserver, postgres, or mysql.");
+
+        var connectionString = cc.ConnectionString;
+        if (connectionString is null && cc.ConnectionStringEnv is { } env)
+            connectionString = Environment.GetEnvironmentVariable(env)
+                ?? throw new InvalidOperationException(
+                    $"Connection '{name}': environment variable '{env}' is not set.");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException(
+                $"Connection '{name}': set connectionString or connectionStringEnv in the config file.");
+
+        return (provider, connectionString);
     }
 
     private static IDbProvider? ResolveProvider(string kind) => kind.Trim().ToLowerInvariant() switch

@@ -32,7 +32,7 @@ public sealed class AppConfig
         AllowTrailingCommas = true,
     };
 
-    public static AppConfig Load(string[] args)
+    public static (string? ConfigPath, List<string> Connections) ParseArgs(string[] args)
     {
         string? configPath = null;
         var exposed = new List<string>();
@@ -50,15 +50,29 @@ public sealed class AppConfig
             }
         }
 
-        configPath ??= Environment.GetEnvironmentVariable("READONLYDB_CONFIG")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".readonlydb", "config.json");
+        return (configPath, exposed);
+    }
 
+    public static string ResolveConfigPath(string? explicitPath) =>
+        explicitPath
+        ?? Environment.GetEnvironmentVariable("READONLYDB_CONFIG")
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".readonlydb", "config.json");
+
+    public static ConfigFile ReadConfigFile(string configPath)
+    {
         if (!System.IO.File.Exists(configPath))
             throw new InvalidOperationException(
-                $"Config file not found at '{configPath}'. Create it, pass --config <path>, or set READONLYDB_CONFIG.");
+                $"Config file not found at '{configPath}'. Run 'readonly-db-mcp init' to create it, pass --config <path>, or set READONLYDB_CONFIG.");
 
-        var file = JsonSerializer.Deserialize<ConfigFile>(System.IO.File.ReadAllText(configPath), JsonOpts)
+        return JsonSerializer.Deserialize<ConfigFile>(System.IO.File.ReadAllText(configPath), JsonOpts)
             ?? throw new InvalidOperationException($"Config file '{configPath}' is empty or invalid.");
+    }
+
+    public static AppConfig Load(string[] args)
+    {
+        var (explicitPath, exposed) = ParseArgs(args);
+        var configPath = ResolveConfigPath(explicitPath);
+        var file = ReadConfigFile(configPath);
 
         if (exposed.Count == 0)
             throw new InvalidOperationException(
