@@ -10,6 +10,34 @@ namespace ReadOnlyDbMcp.Cli;
 /// </summary>
 public static class SetupCli
 {
+    /// <summary>
+    /// How to invoke this process again, for help text. Running the built exe directly must
+    /// echo that path, not the 'readonly-db-mcp' tool command that only exists when the
+    /// package is installed as a .NET tool.
+    /// </summary>
+    public static string Invocation
+    {
+        get
+        {
+            // ProcessPath is the host executable: the built exe, or the .NET tool shim (which
+            // is already named 'readonly-db-mcp'). GetCommandLineArgs()[0] is unsuitable — for
+            // managed apps it reports the .dll path, which is not runnable as typed.
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(exe)) return "readonly-db-mcp";
+
+            var name = Path.GetFileNameWithoutExtension(exe);
+            if (name.Equals("readonly-db-mcp", StringComparison.OrdinalIgnoreCase))
+                return "readonly-db-mcp";
+            if (name.Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+            {
+                var dll = Environment.GetCommandLineArgs() is { Length: > 0 } a ? a[0] : "ReadOnlyDbMcp.dll";
+                return $"dotnet {(dll.Contains(' ') ? $"\"{dll}\"" : dll)}";
+            }
+
+            return exe.Contains(' ') ? $"\"{exe}\"" : exe;
+        }
+    }
+
     private const string ConfigTemplate = """
         {
           // ReadOnlyDbMcp connection config. Keep this file out of source control.
@@ -39,7 +67,7 @@ public static class SetupCli
         if (File.Exists(configPath))
         {
             Console.WriteLine($"Config already exists at '{configPath}' — leaving it untouched.");
-            Console.WriteLine("Validate it with: readonly-db-mcp doctor");
+            Console.WriteLine($"Validate it with: {Invocation} doctor");
             return 0;
         }
 
@@ -48,7 +76,7 @@ public static class SetupCli
         Console.WriteLine($"Created '{configPath}'.");
         Console.WriteLine("Next steps:");
         Console.WriteLine("  1. Edit the file: point the 'demo' connection at your database (read-only credential).");
-        Console.WriteLine("  2. Validate: readonly-db-mcp doctor");
+        Console.WriteLine($"  2. Validate: {Invocation} doctor");
         Console.WriteLine("  3. Register the server in your MCP client with --connections demo (see README).");
         return 0;
     }

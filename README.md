@@ -99,17 +99,12 @@ never exposed as MCP tools, so agents cannot invoke them.
    variable instead of the file. Config path can be overridden with `--config <path>` or the
    `READONLYDB_CONFIG` environment variable.
 
-2. Register the server in your MCP client's config. The entry is the same everywhere —
-   a local command plus args — only the file differs:
+2. Register the server in your MCP client. The entry is the same everywhere — a local
+   command plus args — shown per harness below. Replace the exe path with your clone's
+   `publish` output.
 
-   | Client | Config file |
-   |---|---|
-   | Claude Code | `.mcp.json` in the project root (safe to commit) |
-   | Cursor | `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global) |
-   | GitHub Copilot CLI | `~/.copilot/mcp-config.json` (global) or `.github/mcp.json` (project) |
-   | Codex CLI | `~/.codex/config.toml` under `[mcp_servers.readonly-db]` (TOML, same fields) |
-
-   JSON-style example (Claude Code / Cursor / Copilot CLI):
+   **Copilot CLI** — add to `~/.copilot/mcp-config.json` (global) or `.github/mcp.json`
+   (project):
 
    ```json
    {
@@ -122,9 +117,27 @@ never exposed as MCP tools, so agents cannot invoke them.
    }
    ```
 
-   These files are safe to commit — they name connections, never secrets — though note the
-   exe path is machine-specific, so each dev adjusts it (or you standardize a clone location).
-   The server refuses to start if `--connections` is missing or names an undefined connection.
+   **Cursor** — the same JSON in `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`
+   (global).
+
+   **Claude Code** — one command from your project directory (or the same JSON in
+   `.mcp.json` at the project root):
+
+   ```
+   claude mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections orders
+   ```
+
+   **Codex CLI** — one command (stored in `~/.codex/config.toml` under
+   `[mcp_servers.readonly-db]`):
+
+   ```
+   codex mcp add readonly-db -- C:/path/to/readonly-db-mcp/publish/ReadOnlyDbMcp.exe --connections orders
+   ```
+
+   The project-scoped files are safe to commit — they name connections, never secrets —
+   though the exe path is machine-specific, so each dev adjusts it (or you standardize a
+   clone location). The server refuses to start if `--connections` is missing or names an
+   undefined connection.
 
 ## Tools
 
