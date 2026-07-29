@@ -31,15 +31,46 @@ Supported engines: **SQL Server**, **PostgreSQL**, **MySQL/MariaDB** (.NET 10).
 5. **Blast-radius limits.** Server-side row cap (`maxRows`), default limit, command timeout,
    oversized cells truncated. The realistic failure mode left is an expensive scan, not a write.
 
+## Quickstart
+
+Prerequisite: the [.NET 10 SDK](https://dotnet.microsoft.com/download) (its `dnx` command
+fetches and runs the server from NuGet — nothing to clone or build).
+
+1. Scaffold the connection config, then edit it to point at your database with a
+   **read-only credential**:
+
+   ```
+   dnx ReadOnlyDbMcp --yes -- init
+   ```
+
+2. Verify everything before involving an MCP client — connects, audits credential
+   privileges, counts tables:
+
+   ```
+   dnx ReadOnlyDbMcp --yes -- doctor
+   ```
+
+3. Register the server in your MCP client (details in the next section). For Claude Code
+   it's one command from your project directory:
+
+   ```
+   claude mcp add readonly-db -- dnx ReadOnlyDbMcp --yes -- --connections demo
+   ```
+
+`init` and `doctor` are command-line verbs handled before the MCP server starts; they are
+never exposed as MCP tools, so agents cannot invoke them.
+
 ## Setup
 
-1. Build once:
+1. Building from source instead of using NuGet? Clone and build once, then use the
+   published exe path anywhere the docs say `dnx ReadOnlyDbMcp --yes --`:
 
    ```
    dotnet publish -c Release -o publish
    ```
 
-2. Create `%USERPROFILE%\.readonlydb\config.json` (never commit this file):
+2. Create `%USERPROFILE%\.readonlydb\config.json` (never commit this file;
+   `init` scaffolds it for you):
 
    ```json
    {
@@ -78,18 +109,22 @@ Supported engines: **SQL Server**, **PostgreSQL**, **MySQL/MariaDB** (.NET 10).
    | GitHub Copilot CLI | `~/.copilot/mcp-config.json` (global) or `.github/mcp.json` (project) |
    | Codex CLI | `~/.codex/config.toml` under `[mcp_servers.readonly-db]` (TOML, same fields) |
 
-   JSON-style example (Claude Code / Cursor / Copilot CLI):
+   JSON-style example (Claude Code / Cursor / Copilot CLI). This entry is portable — it
+   works unchanged on every machine, so it's safe for a team repo:
 
    ```json
    {
      "mcpServers": {
        "readonly-db": {
-         "command": "C:/path/to/ReadOnlyDbMcp/publish/ReadOnlyDbMcp.exe",
-         "args": ["--connections", "orders"]
+         "command": "dnx",
+         "args": ["ReadOnlyDbMcp", "--yes", "--", "--connections", "orders"]
        }
      }
    }
    ```
+
+   If you built from source, use `"command": "C:/path/to/ReadOnlyDbMcp/publish/ReadOnlyDbMcp.exe"`
+   with `"args": ["--connections", "orders"]` instead.
 
    These files are safe to commit — they name connections, never secrets. The server refuses
    to start if `--connections` is missing or names an undefined connection.

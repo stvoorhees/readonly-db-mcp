@@ -1,11 +1,29 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ReadOnlyDbMcp.Cli;
 using ReadOnlyDbMcp.Config;
 using ReadOnlyDbMcp.Connections;
 using ReadOnlyDbMcp.Query;
 using ReadOnlyDbMcp.Schema;
 using ReadOnlyDbMcp.Tools;
+
+// Setup verbs run and exit here, before any MCP plumbing exists. They are CLI-only by
+// construction: an agent talking to the running server has no channel to reach them.
+if (args.Length > 0 && (args[0] == "init" || args[0] == "doctor"))
+{
+    try
+    {
+        return args[0] == "init"
+            ? SetupCli.Init(args)
+            : await SetupCli.DoctorAsync(args, CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"readonly-db: {ex.Message}");
+        return 1;
+    }
+}
 
 AppConfig appConfig;
 try

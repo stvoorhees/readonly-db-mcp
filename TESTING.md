@@ -7,12 +7,15 @@ prompts to whatever your schema actually contains.
 
 ## Setup
 
-1. Build: `dotnet publish -c Release -o publish`.
-2. Create `%USERPROFILE%\.readonlydb\config.json` with a `demo` connection pointing at your
-   test database (see README for the format). Use a read-only credential.
-3. Register the server in your MCP client's config with `--connections demo`
+1. Build: `dotnet publish -c Release -o publish` (or use `dnx ReadOnlyDbMcp --yes --`
+   everywhere an exe invocation appears below).
+2. Run `init` to scaffold `%USERPROFILE%\.readonlydb\config.json`, then point the `demo`
+   connection at your test database. Use a read-only credential.
+3. Run `doctor` — it should print `OK demo (...): connected, N table(s), M view(s)` with
+   no WARN about write privileges.
+4. Register the server in your MCP client's config with `--connections demo`
    (see README for a `.mcp.json` example).
-4. Optionally define a second connection named `not-exposed-example` in the config file that
+5. Optionally define a second connection named `not-exposed-example` in the config file that
    is deliberately NOT in the `--connections` allowlist — used below to verify the agent
    cannot see or reach it.
 
