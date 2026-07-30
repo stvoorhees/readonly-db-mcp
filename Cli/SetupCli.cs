@@ -54,6 +54,9 @@ public static class SetupCli
               "connectionString": "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true"
               // ...or reference an environment variable instead of connectionString:
               // "connectionStringEnv": "MYDB_CONNECTION"
+              // Optional (default false): offer the get_view_definition tool for this connection.
+              // Needs VIEW DEFINITION (SQL Server) / SHOW VIEW (MySQL) on the credential; Postgres needs nothing extra.
+              // "exposeViewDefinitions": true
             }
           }
         }
@@ -132,6 +135,23 @@ public static class SetupCli
                 if (warning is not null)
                     Console.WriteLine($"WARN {name}: {warning}. The server only ever constructs SELECT statements, " +
                                       "but a read-only credential is strongly recommended.");
+
+                if (cc.ExposeViewDefinitions)
+                {
+                    var firstView = schema.Tables.FirstOrDefault(t => t.Kind == "view");
+                    if (firstView is null)
+                        Console.WriteLine($"NOTE {name}: exposeViewDefinitions is on, but there are no views to verify against.");
+                    else if (await provider.GetViewDefinitionAsync(connection, firstView.Schema, firstView.Name, ct) is null)
+                    {
+                        var grant = provider.ViewDefinitionRequiredPrivilege is { } p
+                            ? $" Grant {p} to the credential (metadata-only; does not weaken read-only)."
+                            : "";
+                        Console.WriteLine($"FAIL {name}: exposeViewDefinitions is on, but the credential cannot read view definitions.{grant}");
+                        failed = true;
+                    }
+                    else
+                        Console.WriteLine($"OK   {name}: view definitions readable (exposeViewDefinitions).");
+                }
             }
             catch (Exception ex)
             {

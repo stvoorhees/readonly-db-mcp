@@ -31,4 +31,16 @@ public interface IDbProvider
     ColumnCategory Categorize(string dataType);
 
     Task<SchemaModel> LoadSchemaAsync(DbConnection connection, CancellationToken ct);
+
+    /// <summary>
+    /// Returns the view's defining SQL, or null if unavailable. schema/name come from the
+    /// introspected schema model (already validated), and are passed as bound parameters.
+    /// </summary>
+    Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct);
+
+    /// <summary>
+    /// The metadata privilege a credential needs before GetViewDefinitionAsync returns anything,
+    /// or null if the engine exposes definitions to any reader. Used in error messages.
+    /// </summary>
+    string? ViewDefinitionRequiredPrivilege { get; }
 }

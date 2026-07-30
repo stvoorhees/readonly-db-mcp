@@ -56,6 +56,24 @@ public sealed partial class MySqlProvider : IDbProvider
         return ColumnCategory.Other;
     }
 
+    public string? ViewDefinitionRequiredPrivilege => "SHOW VIEW";
+
+    public async Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct)
+    {
+        // Schema is always "" for MySQL (introspection is scoped to DATABASE()).
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT VIEW_DEFINITION
+            FROM information_schema.VIEWS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = @name
+            """;
+        var pName = cmd.CreateParameter();
+        pName.ParameterName = "@name";
+        pName.Value = name;
+        cmd.Parameters.Add(pName);
+        return await cmd.ExecuteScalarAsync(ct) as string;
+    }
+
     public async Task<SchemaModel> LoadSchemaAsync(DbConnection connection, CancellationToken ct)
     {
         var model = new SchemaModel();

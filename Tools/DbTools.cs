@@ -167,14 +167,17 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
         });
     }
 
-    private static string Require(string? value, string name, string tool) =>
-        string.IsNullOrWhiteSpace(value)
-            ? throw new QueryValidationException($"{tool} requires '{name}'. Pass it as a top-level parameter, e.g. {{\"connection\": \"demo\", \"from\": \"dbo.orders\"}}.")
-            : value;
+    internal static string Require(string? value, string name, string tool)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            return value;
+        var example = name == "connection" ? "\"connection\": \"demo\"" : $"\"{name}\": \"dbo.orders\"";
+        throw new QueryValidationException($"{tool} requires '{name}'. Pass it as a top-level parameter, e.g. {{{example}}}.");
+    }
 
     private static string Serialize(object value) => JsonSerializer.Serialize(value, Json);
 
-    private static async Task<string> GuardAsync(Func<Task<object>> action)
+    internal static async Task<string> GuardAsync(Func<Task<object>> action)
     {
         try
         {

@@ -47,10 +47,15 @@ builder.Services.AddSingleton<ConnectionRegistry>();
 builder.Services.AddSingleton<SchemaCache>();
 builder.Services.AddSingleton<QueryExecutor>();
 
-builder.Services
+var mcp = builder.Services
     .AddMcpServer()
     .WithStdioServerTransport()
     .WithTools<DbTools>();
+
+// get_view_definition exists only when a served connection opts in — agents on instances
+// where no connection enables it never see the tool at all.
+if (appConfig.ExposedNames.Any(n => appConfig.File.Connections[n].ExposeViewDefinitions))
+    mcp.WithTools<ViewDefinitionTools>();
 
 await builder.Build().RunAsync();
 return 0;

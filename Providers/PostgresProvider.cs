@@ -60,6 +60,28 @@ public sealed class PostgresProvider : IDbProvider
         return ColumnCategory.Other;
     }
 
+    public string? ViewDefinitionRequiredPrivilege => null;
+
+    public async Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT pg_get_viewdef(c.oid, true)
+            FROM pg_class c
+            JOIN pg_namespace n ON c.relnamespace = n.oid
+            WHERE n.nspname = @schema AND c.relname = @name AND c.relkind IN ('v', 'm')
+            """;
+        var pSchema = cmd.CreateParameter();
+        pSchema.ParameterName = "@schema";
+        pSchema.Value = schema;
+        cmd.Parameters.Add(pSchema);
+        var pName = cmd.CreateParameter();
+        pName.ParameterName = "@name";
+        pName.Value = name;
+        cmd.Parameters.Add(pName);
+        return await cmd.ExecuteScalarAsync(ct) as string;
+    }
+
     public async Task<SchemaModel> LoadSchemaAsync(DbConnection connection, CancellationToken ct)
     {
         var model = new SchemaModel();
