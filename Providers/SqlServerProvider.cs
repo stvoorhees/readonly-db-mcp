@@ -56,6 +56,8 @@ public sealed class SqlServerProvider : IDbProvider
         _ => ColumnCategory.Other,
     };
 
+    public string? ViewDefinitionRequiredPrivilege => "VIEW DEFINITION";
+
     public async Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct)
     {
         await using var cmd = connection.CreateCommand();

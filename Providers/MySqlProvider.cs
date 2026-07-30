@@ -56,6 +56,8 @@ public sealed partial class MySqlProvider : IDbProvider
         return ColumnCategory.Other;
     }
 
+    public string? ViewDefinitionRequiredPrivilege => "SHOW VIEW";
+
     public async Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct)
     {
         // Schema is always "" for MySQL (introspection is scoped to DATABASE()).

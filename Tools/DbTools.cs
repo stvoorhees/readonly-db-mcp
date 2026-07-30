@@ -100,9 +100,14 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
             var exposed = registry.Get(conn);
             await using var dbConnection = await registry.OpenAsync(conn, cancellationToken);
             var definition = await exposed.Provider.GetViewDefinitionAsync(dbConnection, info.Schema, info.Name, cancellationToken);
-            return definition is null
-                ? new { view = info.Key, definition = (string?)null, error = "The engine returned no definition for this view (possibly insufficient metadata privileges)." }
-                : (object)new { view = info.Key, definition = (string?)definition };
+            if (definition is not null)
+                return new { view = info.Key, definition };
+
+            var hint = exposed.Provider.ViewDefinitionRequiredPrivilege is { } privilege
+                ? $"On {exposed.Provider.Kind} the credential needs the {privilege} privilege to read view definitions — " +
+                  "a metadata-only grant that does not weaken read-only enforcement."
+                : "The engine returned no definition for this view.";
+            return (object)new { view = info.Key, definition = (string?)null, error = $"No definition available. {hint}" };
         });
     }
 

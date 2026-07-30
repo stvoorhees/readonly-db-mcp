@@ -37,4 +37,10 @@ public interface IDbProvider
     /// introspected schema model (already validated), and are passed as bound parameters.
     /// </summary>
     Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct);
+
+    /// <summary>
+    /// The metadata privilege a credential needs before GetViewDefinitionAsync returns anything,
+    /// or null if the engine exposes definitions to any reader. Used in error messages.
+    /// </summary>
+    string? ViewDefinitionRequiredPrivilege { get; }
 }
