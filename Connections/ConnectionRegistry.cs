@@ -6,10 +6,11 @@ using ReadOnlyDbMcp.Schema;
 
 namespace ReadOnlyDbMcp.Connections;
 
-public sealed class ExposedConnection(string name, IDbProvider provider, string connectionString)
+public sealed class ExposedConnection(string name, IDbProvider provider, string connectionString, bool exposeViewDefinitions)
 {
     public string Name { get; } = name;
     public IDbProvider Provider { get; } = provider;
+    public bool ExposeViewDefinitions { get; } = exposeViewDefinitions;
     // Internal on purpose: no tool ever reads or returns this.
     internal string ConnectionString { get; } = connectionString;
     internal int PrivilegesChecked; // 0 = not yet; set via Interlocked
@@ -32,8 +33,9 @@ public sealed class ConnectionRegistry
         _log = log;
         foreach (var name in config.ExposedNames)
         {
-            var (provider, connectionString) = Resolve(name, config.File.Connections[name]);
-            _connections[name] = new ExposedConnection(name, provider, connectionString);
+            var cc = config.File.Connections[name];
+            var (provider, connectionString) = Resolve(name, cc);
+            _connections[name] = new ExposedConnection(name, provider, connectionString, cc.ExposeViewDefinitions);
         }
     }
 

@@ -8,6 +8,8 @@ public sealed class ConnectionConfig
     [JsonPropertyName("provider")] public string Provider { get; set; } = "";
     [JsonPropertyName("connectionString")] public string? ConnectionString { get; set; }
     [JsonPropertyName("connectionStringEnv")] public string? ConnectionStringEnv { get; set; }
+    // Opt-in: when absent, the get_view_definition tool is not offered for this connection.
+    [JsonPropertyName("exposeViewDefinitions")] public bool ExposeViewDefinitions { get; set; }
 }
 
 public sealed class ConfigFile
