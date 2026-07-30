@@ -60,6 +60,8 @@ public sealed class PostgresProvider : IDbProvider
         return ColumnCategory.Other;
     }
 
+    public string? ViewDefinitionRequiredPrivilege => null;
+
     public async Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct)
     {
         await using var cmd = connection.CreateCommand();
