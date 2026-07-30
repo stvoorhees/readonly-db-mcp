@@ -147,6 +147,7 @@ never exposed as MCP tools, so agents cannot invoke them.
 | `list_connections` | Names and provider kinds of exposed connections only |
 | `list_tables` | Tables and views (`refresh: true` to reload; schema cached ~5 min) |
 | `describe_table` | Columns plus foreign keys in both directions |
+| `get_view_definition` | The SQL a view is defined as (views only) |
 | `read_rows` | Structured read: joins, filters, aggregates, groupBy, orderBy, limit/offset |
 | `count_rows` | `COUNT(*)` with the same join/filter syntax |
 

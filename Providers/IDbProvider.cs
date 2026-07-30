@@ -31,4 +31,10 @@ public interface IDbProvider
     ColumnCategory Categorize(string dataType);
 
     Task<SchemaModel> LoadSchemaAsync(DbConnection connection, CancellationToken ct);
+
+    /// <summary>
+    /// Returns the view's defining SQL, or null if unavailable. schema/name come from the
+    /// introspected schema model (already validated), and are passed as bound parameters.
+    /// </summary>
+    Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct);
 }
