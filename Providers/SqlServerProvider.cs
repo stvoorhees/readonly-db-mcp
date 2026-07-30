@@ -56,31 +56,6 @@ public sealed class SqlServerProvider : IDbProvider
         _ => ColumnCategory.Other,
     };
 
-    public string? ViewDefinitionRequiredPrivilege => "VIEW DEFINITION";
-
-    public async Task<string?> GetViewDefinitionAsync(DbConnection connection, string schema, string name, CancellationToken ct)
-    {
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            SELECT m.definition
-            FROM sys.sql_modules m
-            JOIN sys.objects o ON m.object_id = o.object_id
-            JOIN sys.schemas s ON o.schema_id = s.schema_id
-            WHERE s.name = @schema AND o.name = @name AND o.type = 'V'
-            """;
-        AddParameter(cmd, "@schema", schema);
-        AddParameter(cmd, "@name", name);
-        return await cmd.ExecuteScalarAsync(ct) as string;
-    }
-
-    private static void AddParameter(DbCommand cmd, string name, string value)
-    {
-        var p = cmd.CreateParameter();
-        p.ParameterName = name;
-        p.Value = value;
-        cmd.Parameters.Add(p);
-    }
-
     public async Task<SchemaModel> LoadSchemaAsync(DbConnection connection, CancellationToken ct)
     {
         var model = new SchemaModel();

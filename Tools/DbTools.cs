@@ -79,38 +79,6 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
         });
     }
 
-    [McpServerTool(Name = "get_view_definition")]
-    [Description("Returns the SQL a view is defined as (its SELECT). Views only — for tables, describe_table shows the structure.")]
-    public async Task<string> GetViewDefinition(
-        [Description("Connection name from list_connections. Required.")] string? connection = null,
-        [Description("View name, optionally schema-qualified, e.g. 'v_order_summary' or 'dbo.v_order_summary'. Required.")] string? view = null,
-        [Description("Alias for 'view'; use one or the other.")] string? table = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await GuardAsync(async () =>
-        {
-            var conn = Require(connection, "connection", "get_view_definition");
-            var name = Require(view ?? table, "view", "get_view_definition");
-            var schema = await schemaCache.GetAsync(conn, refresh: false, cancellationToken);
-            var info = schema.ResolveTable(name);
-            if (info.Kind != "view")
-                throw new QueryValidationException(
-                    $"'{info.Key}' is a {info.Kind}, not a view. Use describe_table for its structure.");
-
-            var exposed = registry.Get(conn);
-            await using var dbConnection = await registry.OpenAsync(conn, cancellationToken);
-            var definition = await exposed.Provider.GetViewDefinitionAsync(dbConnection, info.Schema, info.Name, cancellationToken);
-            if (definition is not null)
-                return new { view = info.Key, definition };
-
-            var hint = exposed.Provider.ViewDefinitionRequiredPrivilege is { } privilege
-                ? $"On {exposed.Provider.Kind} the credential needs the {privilege} privilege to read view definitions — " +
-                  "a metadata-only grant that does not weaken read-only enforcement."
-                : "The engine returned no definition for this view.";
-            return (object)new { view = info.Key, definition = (string?)null, error = $"No definition available. {hint}" };
-        });
-    }
-
     [McpServerTool(Name = "read_rows")]
     [Description("""
         Reads rows via a structured, read-only query. The server constructs and parameterizes all SQL;
@@ -199,13 +167,10 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
         });
     }
 
-    private static string Require(string? value, string name, string tool)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-            return value;
-        var example = name == "connection" ? "\"connection\": \"demo\"" : $"\"{name}\": \"dbo.orders\"";
-        throw new QueryValidationException($"{tool} requires '{name}'. Pass it as a top-level parameter, e.g. {{{example}}}.");
-    }
+    private static string Require(string? value, string name, string tool) =>
+        string.IsNullOrWhiteSpace(value)
+            ? throw new QueryValidationException($"{tool} requires '{name}'. Pass it as a top-level parameter, e.g. {{\"connection\": \"demo\", \"from\": \"dbo.orders\"}}.")
+            : value;
 
     private static string Serialize(object value) => JsonSerializer.Serialize(value, Json);
 
