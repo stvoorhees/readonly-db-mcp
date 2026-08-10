@@ -86,15 +86,28 @@ never exposed as MCP tools, so agents cannot invoke them.
        "legacy": {
          "provider": "mysql",
          "connectionStringEnv": "LEGACY_DB_CONNECTION"
+       },
+       "archive": {
+         "provider": "access",
+         "connectionString": "Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=C:\\data\\archive_be.accdb;"
        }
      }
    }
    ```
 
    Providers: `sqlserver` (aliases `mssql`), `postgres` (`postgresql`, `pg`),
-   `mysql` (`mariadb`). Use `connectionStringEnv` to pull the secret from an environment
-   variable instead of the file. Config path can be overridden with `--config <path>` or the
-   `READONLYDB_CONFIG` environment variable.
+   `mysql` (`mariadb`), `access` (`accdb`, `msaccess`). Use `connectionStringEnv` to pull the
+   secret from an environment variable instead of the file. Config path can be overridden with
+   `--config <path>` or the `READONLYDB_CONFIG` environment variable.
+
+   **Microsoft Access (`.mdb` / `.accdb`).** Each Access file is its own catalog, so add one
+   connection per file. Connections use the ACE ODBC driver
+   (`Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=<path>;`), which ships with the
+   [Microsoft Access Database Engine redistributable](https://www.microsoft.com/download/details.aspx?id=54920)
+   and is **Windows-only** — run the server on Windows for Access connections. Access has no
+   session read-only mode, so (as with SQL Server) the guarantee rests on the server only ever
+   authoring `SELECT`s; point it at a copy of the file, or a share opened read-only, for defense
+   in depth. Access SQL has `TOP n` but no `OFFSET`, so results are capped to the first page.
 
 2. Register the server in your MCP client. The entry is the same everywhere — a local
    command plus args — shown per harness below. Replace the exe path with your clone's

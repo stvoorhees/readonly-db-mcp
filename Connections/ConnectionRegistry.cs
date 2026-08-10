@@ -23,7 +23,7 @@ public sealed class ExposedConnection(string name, IDbProvider provider, string 
 /// </summary>
 public sealed class ConnectionRegistry
 {
-    private static readonly IDbProvider[] Providers = [new SqlServerProvider(), new PostgresProvider(), new MySqlProvider()];
+    private static readonly IDbProvider[] Providers = [new SqlServerProvider(), new PostgresProvider(), new MySqlProvider(), new AccessProvider()];
 
     private readonly Dictionary<string, ExposedConnection> _connections = new(StringComparer.OrdinalIgnoreCase);
     private readonly ILogger<ConnectionRegistry> _log;
@@ -44,7 +44,7 @@ public sealed class ConnectionRegistry
     {
         var provider = ResolveProvider(cc.Provider)
             ?? throw new InvalidOperationException(
-                $"Connection '{name}': unknown provider '{cc.Provider}'. Use sqlserver, postgres, or mysql.");
+                $"Connection '{name}': unknown provider '{cc.Provider}'. Use sqlserver, postgres, mysql, or access.");
 
         var connectionString = cc.ConnectionString;
         if (connectionString is null && cc.ConnectionStringEnv is { } env)
@@ -63,6 +63,7 @@ public sealed class ConnectionRegistry
         "sqlserver" or "mssql" or "sql-server" => Providers[0],
         "postgres" or "postgresql" or "pg" => Providers[1],
         "mysql" or "mariadb" => Providers[2],
+        "access" or "accdb" or "msaccess" or "ms-access" => Providers[3],
         _ => null,
     };
 
