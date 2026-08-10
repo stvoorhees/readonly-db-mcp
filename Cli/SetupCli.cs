@@ -48,7 +48,7 @@ public static class SetupCli
           "connections": {
             // Name entries whatever you like; expose per server instance with --connections <name>.
             "demo": {
-              // provider: sqlserver | postgres | mysql
+              // provider: sqlserver | postgres | mysql | access
               "provider": "sqlserver",
               // Use a READ-ONLY credential. Either put the connection string here...
               "connectionString": "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true"
