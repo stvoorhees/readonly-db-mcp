@@ -14,12 +14,12 @@
     <PackageId>ReadOnlyDbMcp</PackageId>
     <Version>0.1.0</Version>
     <Authors>Spencer Voorhees</Authors>
-    <Description>Read-only database MCP server. Agents never submit SQL — they call structured tools (list_tables, describe_table, read_rows, count_rows) and the server authors every statement. Supports SQL Server, PostgreSQL, and MySQL/MariaDB.</Description>
+    <Description>Read-only database MCP server. Agents submit structured requests and the server authors every query. Supports relational databases and SSAS tabular models.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/stvoorhees/readonly-db-mcp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/stvoorhees/readonly-db-mcp</RepositoryUrl>
-    <PackageTags>mcp;mcp-server;database;sqlserver;postgres;mysql;readonly;ai;agent</PackageTags>
+    <PackageTags>mcp;mcp-server;database;sqlserver;postgres;mysql;ssas;tabular;readonly;ai;agent</PackageTags>
   </PropertyGroup>
 
   <ItemGroup Label="NuGet packaging">
@@ -28,8 +28,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Tests\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+    <PackageReference Include="Microsoft.AnalysisServices.AdomdClient.NetCore.retail.amd64" Version="19.84.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.87.0" />
     <PackageReference Include="ModelContextProtocol" Version="2.0.0" />
     <PackageReference Include="MySqlConnector" Version="2.6.1" />
     <PackageReference Include="Npgsql" Version="10.0.3" />

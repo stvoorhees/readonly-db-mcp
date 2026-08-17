@@ -6,6 +6,7 @@ using ReadOnlyDbMcp.Config;
 using ReadOnlyDbMcp.Connections;
 using ReadOnlyDbMcp.Query;
 using ReadOnlyDbMcp.Schema;
+using ReadOnlyDbMcp.Tabular;
 using ReadOnlyDbMcp.Tools;
 
 // Setup verbs run and exit here, before any MCP plumbing exists. They are CLI-only by
@@ -44,8 +45,11 @@ builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogL
 
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<ConnectionRegistry>();
+builder.Services.AddSingleton<TabularConnectionRegistry>();
 builder.Services.AddSingleton<SchemaCache>();
 builder.Services.AddSingleton<QueryExecutor>();
+builder.Services.AddSingleton<TabularSchemaCache>();
+builder.Services.AddSingleton<TabularQueryExecutor>();
 
 var mcp = builder.Services
     .AddMcpServer()
@@ -56,6 +60,9 @@ var mcp = builder.Services
 // where no connection enables it never see the tool at all.
 if (appConfig.ExposedNames.Any(n => appConfig.File.Connections[n].ExposeViewDefinitions))
     mcp.WithTools<ViewDefinitionTools>();
+
+if (appConfig.ExposedNames.Any(n => TabularConnectionRegistry.IsTabularProvider(appConfig.File.Connections[n].Provider)))
+    mcp.WithTools<TabularTools>();
 
 await builder.Build().RunAsync();
 return 0;

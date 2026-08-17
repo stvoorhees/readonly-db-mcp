@@ -1,5 +1,6 @@
 using ReadOnlyDbMcp.Config;
 using ReadOnlyDbMcp.Connections;
+using ReadOnlyDbMcp.Tabular;
 
 namespace ReadOnlyDbMcp.Cli;
 
@@ -48,7 +49,7 @@ public static class SetupCli
           "connections": {
             // Name entries whatever you like; expose per server instance with --connections <name>.
             "demo": {
-              // provider: sqlserver | postgres | mysql
+              // provider: sqlserver | postgres | mysql | ssas
               "provider": "sqlserver",
               // Use a READ-ONLY credential. Either put the connection string here...
               "connectionString": "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true"
@@ -121,6 +122,14 @@ public static class SetupCli
 
             try
             {
+                if (TabularConnectionRegistry.IsTabularProvider(cc.Provider))
+                {
+                    var tabular = TabularConnectionRegistry.Resolve(name, cc);
+                    var model = await TabularSchemaLoader.LoadAsync(tabular.ConnectionString, file.CommandTimeoutSeconds, ct);
+                    Console.WriteLine($"OK   {name} ({tabular.Provider}): connected, {model.Tables.Count} table(s), {model.Measures.Count} measure(s).");
+                    continue;
+                }
+
                 var (provider, connectionString) = ConnectionRegistry.Resolve(name, cc);
                 await using var connection = provider.CreateConnection(connectionString);
                 await connection.OpenAsync(ct);

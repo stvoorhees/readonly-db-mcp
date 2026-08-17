@@ -7,11 +7,12 @@ using ReadOnlyDbMcp.Config;
 using ReadOnlyDbMcp.Connections;
 using ReadOnlyDbMcp.Query;
 using ReadOnlyDbMcp.Schema;
+using ReadOnlyDbMcp.Tabular;
 
 namespace ReadOnlyDbMcp.Tools;
 
 [McpServerToolType]
-public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache, QueryExecutor executor, AppConfig appConfig)
+public sealed class DbTools(ConnectionRegistry registry, TabularConnectionRegistry tabularRegistry, SchemaCache schemaCache, QueryExecutor executor, AppConfig appConfig)
 {
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -21,7 +22,8 @@ public sealed class DbTools(ConnectionRegistry registry, SchemaCache schemaCache
     [McpServerTool(Name = "list_connections")]
     [Description("Lists the database connections this server exposes: name and provider only. Connection strings are never available through any tool.")]
     public string ListConnections() =>
-        Serialize(registry.List().Select(c => new { name = c.Name, provider = c.Provider.Kind }));
+        Serialize(registry.List().Select(c => new { name = c.Name, provider = c.Provider.Kind })
+            .Concat(tabularRegistry.List().Select(c => new { name = c.Name, provider = c.Provider })));
 
     [McpServerTool(Name = "list_tables")]
     [Description("Lists tables and views on a connection, with column counts. Set refresh=true to reload schema from the database (otherwise cached ~5 minutes).")]

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using ReadOnlyDbMcp.Config;
 using ReadOnlyDbMcp.Providers;
 using ReadOnlyDbMcp.Schema;
+using ReadOnlyDbMcp.Tabular;
 
 namespace ReadOnlyDbMcp.Connections;
 
@@ -34,6 +35,8 @@ public sealed class ConnectionRegistry
         foreach (var name in config.ExposedNames)
         {
             var cc = config.File.Connections[name];
+            if (TabularConnectionRegistry.IsTabularProvider(cc.Provider))
+                continue;
             var (provider, connectionString) = Resolve(name, cc);
             _connections[name] = new ExposedConnection(name, provider, connectionString, cc.ExposeViewDefinitions);
         }
@@ -44,7 +47,7 @@ public sealed class ConnectionRegistry
     {
         var provider = ResolveProvider(cc.Provider)
             ?? throw new InvalidOperationException(
-                $"Connection '{name}': unknown provider '{cc.Provider}'. Use sqlserver, postgres, or mysql.");
+                $"Connection '{name}': unknown relational provider '{cc.Provider}'. Use sqlserver, postgres, or mysql.");
 
         var connectionString = cc.ConnectionString;
         if (connectionString is null && cc.ConnectionStringEnv is { } env)

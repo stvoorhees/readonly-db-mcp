@@ -5,7 +5,9 @@ submit SQL — they call structured tools with table names, column names, filter
 and the server authors every statement itself. Mutations are not restricted; they are
 **inexpressible**.
 
-Supported engines: **SQL Server**, **PostgreSQL**, **MySQL/MariaDB** (.NET 10).
+Supported relational engines: **SQL Server**, **PostgreSQL**, **MySQL/MariaDB**. It also
+supports **SQL Server Analysis Services (SSAS) tabular models** through a distinct ADOMD
+semantic-model path (.NET 10).
 
 ## Security model
 
@@ -86,15 +88,21 @@ never exposed as MCP tools, so agents cannot invoke them.
        "legacy": {
          "provider": "mysql",
          "connectionStringEnv": "LEGACY_DB_CONNECTION"
+       },
+       "semantic_model": {
+         "provider": "ssas",
+         "connectionStringEnv": "SEMANTIC_MODEL_CONNECTION"
        }
      }
    }
    ```
 
    Providers: `sqlserver` (aliases `mssql`), `postgres` (`postgresql`, `pg`),
-   `mysql` (`mariadb`). Use `connectionStringEnv` to pull the secret from an environment
-   variable instead of the file. Config path can be overridden with `--config <path>` or the
-   `READONLYDB_CONFIG` environment variable.
+   `mysql` (`mariadb`), and `ssas` (`tabular`). SSAS uses ADOMD and supports standard
+   connection strings, including Windows integrated authentication. Use
+   `connectionStringEnv` to pull the secret from an environment variable instead of the
+   file. Config path can be overridden with `--config <path>` or the `READONLYDB_CONFIG`
+   environment variable.
 
 2. Register the server in your MCP client. The entry is the same everywhere — a local
    command plus args — shown per harness below. Replace the exe path with your clone's
@@ -150,6 +158,9 @@ never exposed as MCP tools, so agents cannot invoke them.
 | `get_view_definition` | The SQL a view is defined as (opt-in per connection; see note below) |
 | `read_rows` | Structured read: joins, filters, aggregates, groupBy, orderBy, limit/offset |
 | `count_rows` | `COUNT(*)` with the same join/filter syntax |
+| `list_tabular_tables` | Visible tables in an SSAS tabular model |
+| `describe_tabular_table` | Visible columns, measures, and relationships for a tabular table |
+| `read_tabular_rows` | Structured, capped row or measure read from a tabular model |
 
 `read_rows` example — the agent sends only structure:
 
@@ -182,6 +193,20 @@ it); otherwise pass `on: { "left": "alias.col", "right": "alias.col" }`. Filter 
 (AND-combined). Aggregates: `count`, `sum`, `avg`, `min`, `max` with `groupBy`. Responses
 include the generated SQL for transparency, and a `truncated` flag when the row cap was hit.
 
+### SSAS tabular models
+
+SSAS is intentionally not exposed through relational tools: tabular metadata has tables,
+columns, measures, and relationships rather than SQL schemas and foreign keys, and its query
+language is DAX. Use `list_tabular_tables`, then `describe_tabular_table`, followed by
+`read_tabular_rows`.
+
+`read_tabular_rows` accepts only metadata-validated table, column, and measure names; typed
+`=`/`in` filter values; an optional selected-field sort; and a bounded limit. The server builds
+the DAX itself and does **not** accept raw DAX, MDX, XMLA, expressions, calculated columns, or
+measure definitions. Selecting columns reads model rows. Including measures calculates them at
+the selected-column granularity. SSAS metadata discovery uses fixed, bounded server-authored
+DMV queries; measure expressions are never returned.
+
 ## Intended workflow for mutations
 
 The agent uses these tools to understand schema and data, then writes any
@@ -194,3 +219,7 @@ Implement `Providers/IDbProvider.cs` (connection factory, session read-only stat
 privilege check, identifier quoting, limit syntax, type categorization, schema introspection)
 and register it in `ConnectionRegistry.Providers`. The query builder and tool surface are
 engine-agnostic.
+
+Semantic models are a separate integration boundary. Do not implement them through
+`IDbProvider`, `QueryBuilder`, or `QueryExecutor`: add an ADOMD-backed registry, metadata cache,
+and restricted server-side query builder analogous to the `Tabular` implementation.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.stvoorhees/readonly-db-mcp",
-  "description": "Read-only database access for agents via structured tools; the server authors all SQL. Supports SQL Server, PostgreSQL, MySQL/MariaDB.",
+  "description": "Read-only database and SSAS tabular-model access via structured tools; the server authors all SQL and DAX.",
   "repository": {
     "url": "https://github.com/stvoorhees/readonly-db-mcp",
     "source": "github"
